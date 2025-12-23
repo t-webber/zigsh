@@ -10,5 +10,6 @@
         "src",
         "LICENSE-MIT",
         "LICENSE-APACHE",
+        "README.md",
     },
 }
