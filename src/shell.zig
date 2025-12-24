@@ -4,10 +4,11 @@ const process = std.process;
 const Allocator = mem.Allocator;
 
 pub const Shell = struct {
+    allocator: Allocator,
     env: process.EnvMap,
 
     pub fn new(allocator: Allocator) process.GetEnvMapError!@This() {
-        return @This(){ .env = try process.getEnvMap(allocator) };
+        return @This(){ .env = try process.getEnvMap(allocator), .allocator = allocator };
     }
 
     pub fn free(self: @This()) void {
@@ -28,7 +29,14 @@ pub const Shell = struct {
         if (line[1] != ' ') return null;
         const dest = line[2..];
         for (dest) |ch| if (ch == ' ') return "Found more than 2 args for `p`.\n";
-        try self.env.put("PWD", dest);
+        if (dest[0] == '/')
+            try self.env.put("PWD", dest)
+        else {
+            const old_pwd = self.env.get("PWD").?;
+            const new_pwd = try std.fmt.allocPrint(self.allocator, "{s}/{s}", .{ old_pwd, dest });
+            try self.env.put("PWD", new_pwd);
+        }
+
         return null;
     }
 };
