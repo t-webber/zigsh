@@ -3,7 +3,7 @@ const File = std.fs.File;
 
 const Shell = @import("shell.zig").Shell;
 
-const IoError = error{ BufferOverflow, OutOfMemory } || File.WriteError || File.ReadError;
+const IoError = error{OutOfMemory} || File.WriteError || File.ReadError;
 
 pub fn main() IoError!void {
     const out = File.stdout();
@@ -20,8 +20,11 @@ pub fn main() IoError!void {
     while (true) {
         try out.writeAll(shell.get_ps1());
         const len = try in.read(&buf);
-        if (len == 512) return IoError.BufferOverflow;
-        if (try shell.process_input(buf[0 .. len - 1])) |res|
+        if (len == 512) {
+            try out.writeAll("Line too long, skipping\n");
+        } else {
+            const res = try shell.process_input(buf[0 .. len - 1]);
             try out.writeAll(res);
+        }
     }
 }
